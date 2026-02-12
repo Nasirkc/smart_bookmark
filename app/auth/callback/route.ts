@@ -10,9 +10,10 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  // NEXT_PUBLIC_SITE_URL = your Vercel URL (or custom domain). Fallback: VERCEL_URL on Vercel.
+  // NEVER use request.origin on Vercel
   const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ||  requestUrl.origin;
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
-  return NextResponse.redirect(new URL("/dashboard", baseUrl));
+  return NextResponse.redirect(`${baseUrl}/dashboard`);
 }
