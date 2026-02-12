@@ -141,7 +141,6 @@ export default function DashboardContent({
     });
   }, [userId]);
 
-  // Fallback: when Supabase realtime fails, poll every 5s so the list still stays in sync
   useEffect(() => {
     const interval = setInterval(fetchBookmarks, 3000);
     return () => clearInterval(interval);
