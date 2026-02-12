@@ -50,13 +50,10 @@ export default function LoginPage() {
   }, [router]);
 
   async function handleGoogleLogin() {
-    console.log(process.env.NEXT_PUBLIC_SITE_URL);
-    console.log(window.location.origin);
-    console.log(`${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`);
     const supabase = createClient();
     await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback` },
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
   }
 
