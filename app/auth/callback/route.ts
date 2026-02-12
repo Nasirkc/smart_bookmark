@@ -10,10 +10,9 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  // Use explicit site URL on Vercel so we never redirect to localhost after OAuth
+  // NEXT_PUBLIC_SITE_URL = your Vercel URL (or custom domain). Fallback: VERCEL_URL on Vercel.
   const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    requestUrl.origin;
+    process.env.NEXT_PUBLIC_SITE_URL ||  requestUrl.origin;
 
   return NextResponse.redirect(new URL("/dashboard", baseUrl));
 }

@@ -94,7 +94,6 @@ export default function DashboardContent({
           status === "TIMED_OUT"
         ) {
           setRealtimeStatus("error");
-          toast.error("Connection lost. Refresh the page to sync.");
         }
       });
 
