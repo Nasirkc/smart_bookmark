@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import type { Bookmark } from "@/types/bookmark";
@@ -97,7 +97,6 @@ export default function DashboardContent({
         }
       });
 
-    // Fallback: when another tab adds a bookmark, BroadcastChannel delivers it (postgres_changes INSERT can be unreliable)
     const broadcastChannel = new BroadcastChannel(`bookmarks-sync-${userId}`);
     broadcastChannel.onmessage = (e: MessageEvent) => {
       const msg = e.data as { type?: string; payload?: Record<string, unknown> } | null;
@@ -105,6 +104,8 @@ export default function DashboardContent({
       const newRow = toBookmark(msg.payload);
       if (!newRow || newRow.user_id !== userId) return;
       setBookmarks((prev) => {
+        if (prev.some((b) => b.id === newRow.id)) return prev;
+        toast.info("New bookmark added");
         return sortByNewest([newRow, ...prev]);
       });
     };
@@ -114,6 +115,38 @@ export default function DashboardContent({
       supabase.removeChannel(channel);
     };
   }, [userId]);
+
+  const fetchBookmarks = useCallback(async () => {
+    const supabase = createClient();
+    const { data: rows, error } = await supabase
+      .from("bookmarks")
+      .select("id, user_id, title, url, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    if (error) return;
+    const fetched = (rows ?? []).map((raw: Record<string, unknown>) => ({
+      id: String(raw.id),
+      user_id: String(raw.user_id ?? ""),
+      title: String(raw.title ?? ""),
+      url: String(raw.url ?? ""),
+      created_at:
+        raw.created_at != null
+          ? new Date(raw.created_at as string).toISOString()
+          : new Date().toISOString(),
+    }));
+    setBookmarks((prev) => {
+      const byId = new Map(prev.map((b: Bookmark) => [b.id, b]));
+      fetched.forEach((b: Bookmark) => byId.set(b.id, b));
+      return sortByNewest(Array.from(byId.values()));
+    });
+  }, [userId]);
+
+  // Fallback: when Supabase realtime fails, poll every 5s so the list still stays in sync
+  useEffect(() => {
+    if (realtimeStatus !== "error") return;
+    const interval = setInterval(fetchBookmarks, 5000);
+    return () => clearInterval(interval);
+  }, [realtimeStatus, fetchBookmarks]);
 
   async function handleDelete(id: string) {
     setDeletingId(id);
@@ -128,7 +161,10 @@ export default function DashboardContent({
   }
 
   function handleBookmarkAdded(bookmark: Bookmark) {
-    setBookmarks((prev) => sortByNewest([bookmark, ...prev]));
+    setBookmarks((prev) => {
+      if (prev.some((b) => b.id === bookmark.id)) return prev;
+      return sortByNewest([bookmark, ...prev]);
+    });
   }
 
   return (
