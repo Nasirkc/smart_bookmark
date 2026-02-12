@@ -13,7 +13,6 @@ export async function GET(request: Request) {
   // Use explicit site URL on Vercel so we never redirect to localhost after OAuth
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
-    (process.env.APP_URL ? `https://${process.env.APP_URL}` : undefined) ||
     requestUrl.origin;
 
   return NextResponse.redirect(new URL("/dashboard", baseUrl));
